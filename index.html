@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Calcul Pixels</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    max-width: 450px;
+    margin: 30px auto;
+    padding: 20px;
+    background-color: #fdf6f6;
+    color: #333;
+  }
+  h1 {
+    color: #ff3838;
+    text-align: center;
+  }
+  label {
+    font-size: 1.1em;
+  }
+  input[type="number"] {
+    font-size: 1.2em;
+    width: 100%;
+    padding: 8px;
+    text-align: center;
+    margin: 10px 0 20px 0;
+    box-sizing: border-box;
+  }
+  button {
+    font-size: 1.1em;
+    background-color: #ff3838;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    cursor: pointer;
+    width: 100%;
+    border-radius: 4px;
+  }
+  button:hover {
+    background-color: #e63333;
+  }
+  #lastEntry {
+    margin-bottom: 20px;
+    font-weight: bold;
+    color: #ff3838;
+  }
+  #result {
+    white-space: pre-wrap;
+    margin-top: 20px;
+    background: #fff0f0;
+    border: 1px solid #ff3838;
+    padding: 15px;
+    border-radius: 5px;
+  }
+</style>
+</head>
+<body>
+  <h1>Calcul Pixels</h1>
+  <div id="lastEntry"></div>
+  <label for="pixelInput">Combien de pixels maximum peux-tu poser d'un coup ?</label>
+  <input type="number" id="pixelInput" min="1" step="1" />
+  <button id="calculateBtn">Calculer</button>
+  <div id="result"></div>
+
+<script>
+  // Fonction pour charger les données stockées dans localStorage
+  function loadData() {
+    const dataJson = localStorage.getItem('pixelData');
+    if (!dataJson) return { history: [] };
+    try {
+      return JSON.parse(dataJson);
+    } catch(e) {
+      console.error("Erreur parsing JSON.", e);
+      return { history: [] };
+    }
+  }
+
+  // Fonction pour sauvegarder les données dans localStorage
+  function saveData(data) {
+    localStorage.setItem('pixelData', JSON.stringify(data));
+  }
+
+  // Conversion secondes -> hh:mm:ss
+  function convertSeconds(totalSec) {
+    const heures = Math.floor(totalSec / 3600);
+    const minutes = Math.floor((totalSec % 3600) / 60);
+    const secondes = totalSec % 60;
+    return { heures, minutes, secondes };
+  }
+
+  // Mise à jour affichage dernière entrée
+  function updateLastEntry() {
+    const data = loadData();
+    const lastLabel = document.getElementById("lastEntry");
+    if (data.history.length > 0) {
+      const last = data.history[data.history.length - 1];
+      const t = convertSeconds(last.total_seconds);
+      lastLabel.textContent = `Dernier max pixels : ${last.pixels} → Temps : ${t.heures}h ${t.minutes}min ${t.secondes}s`;
+    } else {
+      lastLabel.textContent = '';
+    }
+  }
+
+  // Fonction principale calcul et affichage
+  function calculate() {
+    const entryEl = document.getElementById('pixelInput');
+    const resultEl = document.getElementById('result');
+    const pixelsStr = entryEl.value.trim();
+    const pixels = parseInt(pixelsStr, 10);
+
+    if (isNaN(pixels) || pixels <= 0) {
+      alert("Merci d'entrer un nombre entier positif.");
+      return;
+    }
+
+    const data = loadData();
+    const history = data.history;
+
+    const total_seconds = pixels * 30;
+    const { heures, minutes, secondes } = convertSeconds(total_seconds);
+
+    let result = `${pixels} pixels * 30 secondes = ${total_seconds} sec\n`;
+    result += `Converti : ${heures}h ${minutes}min ${secondes}s\n`;
+
+    if (history.length > 0) {
+      const last_pixels = history[history.length - 1].pixels;
+      const diff = pixels - last_pixels;
+      if (diff > 0) {
+        result += `📈 Augmentation de ${diff} pixels (dernier : ${last_pixels})`;
+      } else if (diff < 0) {
+        result += `📉 Diminution de ${-diff} pixels (dernier : ${last_pixels})`;
+      } else {
+        result += `➖ Pas de changement (dernier : ${last_pixels})`;
+      }
+    } else {
+      result += "✅ Premier enregistrement";
+    }
+
+    // Sauvegarde
+    history.push({ pixels, total_seconds });
+    saveData(data);
+
+    // Mise à jour affichage dernière entrée
+    updateLastEntry();
+
+    // Affichage résultat
+    resultEl.textContent = result;
+  }
+
+  // Initialisation au chargement
+  document.getElementById('calculateBtn').addEventListener('click', calculate);
+  updateLastEntry();
+</script>
+</body>
+</html>
